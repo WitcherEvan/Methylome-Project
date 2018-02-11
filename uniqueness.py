@@ -3,7 +3,7 @@ with open('query.csv','r') as src:
     count = 0
     for row in src:
         cols = row.split(',')
-        names.append(cols[0])
+        names.append(cols[1])
         count = count + 1
 while (count > 1):
     aName = names.pop()
