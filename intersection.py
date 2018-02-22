@@ -1,14 +1,15 @@
 import re
 
-with open('file-per-line.txt', 'r') as files:
+with open('sequenceFiles.txt', 'r') as files:
+    # Contains list of zipped sequence files downloaded.
     # Create dictionary for GSM# -> filename
     numToFile = {}
     for filename in files:
         numToFile[filename.split('_')[0]] = filename.strip('\n')
 
-with open('query.csv', 'r') as info:
+with open('GPSdata.csv', 'r') as info:
     next(info) # skip headers
-
+    # Contains all GPS data files.
     # Create dictionaries for eid -> row and name -> row
     eidRow = {}
     nameRow = {}
@@ -16,10 +17,11 @@ with open('query.csv', 'r') as info:
         eidRow[row.split(',')[0]] = row.strip('\n')
         nameRow[row.split(',')[1]] = row.strip('\n')
 
-final = open('associated.csv', 'w') # where we write completed data
-final.write('tg_ecotypeid,name,CS_number,country,latitude,longitude,collector,seq_by, filename') # headers
+final = open('masterList.csv', 'w') # where we write completed data
+final.write('tg_ecotypeid,name,CS_number,country,latitude,longitude,collector,seq_by, filename\n') # headers
 
 with open('gsm-title.csv', 'r') as numTitle:
+    # This list is from ncbi site, linking all GSM# to their name and eid
     remainder = []
     for row in numTitle:
         # looking for tg_ecotypeId in filename. Most have this: 704/926
@@ -37,8 +39,10 @@ with open('gsm-title.csv', 'r') as numTitle:
                 filename = numToFile.get(gsm)
                 if filename != None:
                     final.write(dataRow + ',' + filename + '\n')
+                    # Remove that file from dictionary, to avoid duplication.
+                    numToFile.pop(gsm)
                     continue
-                # go to next entry, doesnt put this in 'remainder' pile
+                # go to next row/entry. Doesn't put this in 'remainder' pile.
 
         # failing above conditions brings us here.
         # We store this entry to handle later
@@ -58,7 +62,9 @@ for entry in remainder:
         filename = numToFile.get(gsm)
 
         if (filename != None):
+            # Found a match using 'name' key.
             final.write(dataRow + ',' + filename + '\n')
+            numToFile.pop(gsm)
             continue # when successful
 
     # Store files that did not pair to any gps data.
@@ -66,5 +72,8 @@ for entry in remainder:
     exluded.append(entry + '\n')
 
 final.close()
+print(len(numToFile))
+print(numToFile)
+# Record unmatched sequences for sanity-check purposes.
 with open('excluded.txt', 'w') as ex:
     ex.write(''.join(exluded))

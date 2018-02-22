@@ -1,12 +1,15 @@
-with open('query.csv','r') as src:
-    names = []
+# A debugging tool I modify to look for duplications in csv's
+
+with open('masterList.csv','r') as src:
+    items = []
     count = 0
     for row in src:
         cols = row.split(',')
-        names.append(cols[1])
+        items.append(cols[len(cols)-1])
         count = count + 1
-while (count > 1):
-    aName = names.pop()
+while count > 1:
+    aItem = items.pop()
     count = count - 1
-    if (aName in names):
-        print(aName)
+    if aItem in items:
+        print(aItem)
+print('Unique if this is the only line!')

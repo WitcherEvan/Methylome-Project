@@ -1,3 +1,4 @@
+tg_ecotypeid,name,CS_number,country,latitude,longitude,collector,seq_by, filename
 9503,11C1,CS76640,UK,55.8877,3.21072,Andrew Hudson,Monsanto,GSM2099389_allc_9503.tsv.gz
 6680,ANH_1,CS76437,GER,51.85,6.4333,Gerhard Röbbelen,Salk,GSM2099226_allc_6680.tsv.gz
 9911,ARGE_1_15,CS76672,FRA,47.16,4.28,0,Monsanto,GSM2328626_allc_9911.tsv.gz
