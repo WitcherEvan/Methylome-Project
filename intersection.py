@@ -1,13 +1,13 @@
 import re
 
-with open('sequenceFiles.txt', 'r') as files:
+with open('BuildingBlocks/SequenceFiles.txt', 'r') as files:
     # Contains list of zipped sequence files downloaded.
     # Create dictionary for GSM# -> filename
     numToFile = {}
     for filename in files:
         numToFile[filename.split('_')[0]] = filename.strip('\n')
 
-with open('GPSdata.csv', 'r') as info:
+with open('BuildingBlocks/GPSdata.csv', 'r') as info:
     next(info) # skip headers
     # Contains all GPS data files.
     # Create dictionaries for eid -> row and name -> row
@@ -20,7 +20,7 @@ with open('GPSdata.csv', 'r') as info:
 final = open('masterList.csv', 'w') # where we write completed data
 final.write('tg_ecotypeid,name,CS_number,country,latitude,longitude,collector,seq_by, filename\n') # headers
 
-with open('gsm-title.csv', 'r') as numTitle:
+with open('BuildingBlocks/gsm-title.csv', 'r') as numTitle:
     # This list is from ncbi site, linking all GSM# to their name and eid
     remainder = []
     for row in numTitle:
@@ -75,5 +75,5 @@ final.close()
 print(len(numToFile))
 print(numToFile)
 # Record unmatched sequences for sanity-check purposes.
-with open('excluded.txt', 'w') as ex:
+with open('Supplementary/excluded.txt', 'w') as ex:
     ex.write(''.join(exluded))

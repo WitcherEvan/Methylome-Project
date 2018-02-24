@@ -30,7 +30,7 @@ dirName = 'Data/'
 # default values. Change based on goals and convenience
 batch = 'default.txt'
 minPos = 0
-maxPos = 200
+maxPos = sys.maxint
 chromo = 1
 
 # Parsing input section:
@@ -68,7 +68,7 @@ if (len(sys.argv) > 1): # then we have parameters
 
         else:
             try:
-                with open('./Batch/' + arg, 'r') as runs:
+                with open('./Batch/' + arg, 'r') as test:
                     batch = arg
             except FileNotFoundError:
                 print('Given filename \'' + arg + '\' was not found under Batch directory.')
@@ -76,27 +76,32 @@ if (len(sys.argv) > 1): # then we have parameters
         index = index+1
 
 
-# start reading sequences
-n = 0
-for el in filesOfInterest:
-    path = dirName + el
+# start reading sequences from designated batch-file
+with open('./Batch/' + batch, 'r') as seqList:
+    for filename in seqList:
+        path = dirName + filename.strip('\n')
 
-    with gzip.open(path, 'r') as myzip:
-        next(myzip) # skip title headers
+        # Every file
+        with gzip.open(path, 'r') as myzip:
+            next(myzip) # skip title headers
+            methylCount = 0
+            n = 0
 
-        for byteForm in myzip:
-            row = byteForm.decode('utf-8').strip('\n')
-            columns = row.split('\t')
+            # Every line of csv
+            for byteForm in myzip:
+                row = byteForm.decode('utf-8').strip('\n')
+                columns = row.split('\t')
 
-            if (int(columns[1]) <= minPos): # if current position less that target,
-                continue # not at start of target range
+                if (int(columns[1]) <= minPos): # if current position less that target,
+                    continue # not at start of target range
 
-            if (int(columns[1]) <= maxPos): # we are in desired range. Do things
+                if (int(columns[1]) <= maxPos): # we are in desired range. Do things
 
-                # here we do the processing, add info to dictionaries, etc
-                n = n+1
+                    # here we do the processing, add info to dictionaries, etc
+                    n = n+1
+                    methylCount = methylCount + int(columns[6])
 
-            else: # we have completed target range. end of code section
-                break # ends reading of myzip file, move to next filesOfInterest
+                else: # we have completed target range. end of code section
+                    print(path + '\t' + str(methylCount) + ' methlyated out of ' + str(n))
 
-print('lines processed: '+str(n)) # for our information, maybe useful
+                    break # ends reading of myzip file, move to next filesOfInterest
