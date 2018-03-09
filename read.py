@@ -2,7 +2,9 @@ import os
 import sys
 import gzip
 import re
+import time
 
+start = time.time()
 # Command line arguments:
 # None required, no ordering of the three enforced.
 # Keep 'chr' and 'range' paired with their # as indicated.
@@ -30,18 +32,19 @@ dirName = 'Data/'
 # default values. Change based on goals and convenience
 batch = 'default.txt'
 minPos = 0
-maxPos = sys.maxint
-chromo = 1
+maxPos = 31000000 # 31 million covers the longerst chromosome.
+chromo = -1 # will consider all chromosomes by default
 
 # Parsing input section:
 # The current setup would keep taking inputs, and save the last valid one.
-# Fix? Depends on whether we want option to put many filenames directly into command line
 
 if (len(sys.argv) > 1): # then we have parameters
+    # Sort out the given parameters.
     index = 1
     while ( index <= len(sys.argv)-1 ):
         arg = sys.argv[index]
 
+#------------- chromosome number evaluation -------------#
         if (arg == 'chr' and index+1 <= len(sys.argv)-1): # avoid IndexOutOfBounds
             try:
                 num = int(sys.argv[index+1])
@@ -49,10 +52,15 @@ if (len(sys.argv) > 1): # then we have parameters
                 if num > 0 and num <= 5:
                     chromo = num
                 else:
-                    print('Positive integer please. Using default chr.')
+                    print('Please use valid chromosome number, 1 to 5. Using default value.')
+                # Increment index past the value given, since the lack of valueError suggests the input value
+                # was intended as a chromosome number, but was invalid.
+                index = index+1
             except ValueError:
-                print('Error: chr must be followed by the chromosome number, a positive integer.')
+                print('Error: \'chr\' must be followed by the desired chromosome number, a positive integer.')
+                sys.exit()
 
+#------------- Base pair position evaluation -------------#
         elif (arg == 'range' and index+1 <= len(sys.argv)-1): # avoid IndexOutOfBounds
             try:
                 rn = sys.argv[index+1]
@@ -63,45 +71,146 @@ if (len(sys.argv) > 1): # then we have parameters
                     maxPos = rmax
                 else:
                     print('Positive integers please. Using default range.')
+                index = index+1
             except ValueError:
-                print('Error: range must be followed by min-max position on the genome.')
+                print('Error: \'range\' must be followed by dash-seperated min-max base pair positions.')
+                sys.exit()
 
+#------------- Consider input to be the batch-file, specifying the methylomes we want to work on -------------#
         else:
             try:
                 with open('./Batch/' + arg, 'r') as test:
                     batch = arg
+                # saves given filename for later. This remembers only the last valid file.
             except FileNotFoundError:
                 print('Given filename \'' + arg + '\' was not found under Batch directory.')
+                sys.exit()
 
+# Increment index at end of loop
         index = index+1
 
+query = './Results/chr'+str(chromo)+'_range_'+str(minPos)+'-'+str(maxPos)+'_from_'+batch.split('.')[0]+'.csv'
+result = open(query, 'w')
+result.write('sequence,overall,CG_context,CHH_context,CHG_context\n')
+# add others if necessary
 
 # start reading sequences from designated batch-file
 with open('./Batch/' + batch, 'r') as seqList:
     for filename in seqList:
         path = dirName + filename.strip('\n')
+        subStart = time.time()
+        # Reset for every new file
+        CG_methyl = 0
+        CG_total = 0
+        CHH_methyl = 0
+        CHH_total = 0
+        CHG_methyl = 0
+        CHG_total = 0
+        linecount = 0
+        all_methyls = 0
 
-        # Every file
-        with gzip.open(path, 'r') as myzip:
-            next(myzip) # skip title headers
-            methylCount = 0
-            n = 0
+        # Seperate branch of opertions for default behaviour. Doesnt feel great,
+        # quasi-duplicating my code this way, but it helps keep both functionalities
+        # within this one read.py script
+        if chromo == -1:
+            try:
+                with gzip.open(path, 'r') as myzip:
+                    next(myzip) # skip title headers
 
-            # Every line of csv
-            for byteForm in myzip:
-                row = byteForm.decode('utf-8').strip('\n')
-                columns = row.split('\t')
+                    # Every line of csv
+                    for byteForm in myzip:
+                        row = byteForm.decode('utf-8').strip('\n')
+                        columns = row.split('\t')
 
-                if (int(columns[1]) <= minPos): # if current position less that target,
-                    continue # not at start of target range
+                        # Target range not reached, continue
+                        if int(columns[1]) < minPos or int(columns[1]) > maxPos:
+                            continue
+                        # reached, do stuff
+                        all_methyls += int(columns[6])
+                        linecount+=1
 
-                if (int(columns[1]) <= maxPos): # we are in desired range. Do things
+                        match = re.search(r'CG', columns[3])
+                        if match: #columns[3] == 'CG':
+                            CG_methyl = CG_methyl + int(columns[6])
+                            CG_total += 1
 
-                    # here we do the processing, add info to dictionaries, etc
-                    n = n+1
-                    methylCount = methylCount + int(columns[6])
+                        match = re.search(r'C[A,T,C]G', columns[3])
+                        if match:
+                            CHG_methyl = CHG_methyl + int(columns[6])
+                            CHG_total += 1
 
-                else: # we have completed target range. end of code section
-                    print(path + '\t' + str(methylCount) + ' methlyated out of ' + str(n))
+                        match = re.search(r'C[A,T,C][A,T,C]', columns[3])
+                        if match:
+                            CHH_methyl = CHH_methyl + int(columns[4])
+                            CHH_total += 1
+                        # End of line-loop. Gets next line in myzip file
 
-                    break # ends reading of myzip file, move to next filesOfInterest
+                    # on finishing all lines of a file,
+                    overall = str(round(all_methyls / linecount, 6))
+                    CG_context = str(round((CG_methyl / CG_total), 6))
+                    CHH_context = str(round((CHH_methyl / CHH_total), 6))
+                    CHG_context = str(round((CHG_methyl / CHG_total), 6))
+
+                    # write results to csv file to save answers
+                    result.write(path +','+ overall +','+ CG_context +','+ CHH_context +','+ CHG_context +'\n')
+                    # timer per file
+                    print(str(round(time.time() - subStart, 2)) + 'seconds for '+ path)
+
+            except FileNotFoundError:
+                print('File ' + path + " was not found.")
+
+        else: # This branch is where a single chromosome is specified.
+            try:
+                with gzip.open(path, 'r') as myzip:
+                    next(myzip) # skip title headers
+
+                    # Every line of csv
+                    for byteForm in myzip:
+                        row = byteForm.decode('utf-8').strip('\n')
+                        columns = row.split('\t')
+
+                        if int(columns[0]) < chromo or int(columns[1]) < minPos: # if current position less that target,
+                                continue # with next line in myzip
+
+                        # Here we've passed the checks for finding our target region.
+                        if int(columns[0]) == chromo and int(columns[1]) <= maxPos: # Do things
+                            all_methyls += int(columns[6])
+                            linecount+=1
+
+                            match = re.search(r'CG', columns[3])
+                            if match: #columns[3] == 'CG':
+                                CG_methyl = CG_methyl + int(columns[6])
+                                CG_total += 1
+
+                            match = re.search(r'C[A,T,C]G', columns[3])
+                            if match:
+                                CHG_methyl = CHG_methyl + int(columns[6])
+                                CHG_total += 1
+
+                            match = re.search(r'C[A,T,C][A,T,C]', columns[3])
+                            if match:
+                                CHH_methyl = CHH_methyl + int(columns[4])
+                                CHH_total += 1
+
+                            continue # to next line in myzip file
+
+                        else: # we have completed target range on a file
+                            overall = str(round(all_methyls / linecount, 6))
+                            CG_context = str(round((CG_methyl / CG_total), 6))
+                            CHH_context = str(round((CHH_methyl / CHH_total), 6))
+                            CHG_context = str(round((CHG_methyl / CHG_total), 6))
+
+                            # write results to csv file to save answers
+                            result.write(path +','+ overall +','+ CG_context +','+ CHH_context +','+ CHG_context +'\n')
+                            # timer per file
+                            print(str(round(time.time() - subStart, 2)) + 'seconds for '+ path)
+                            break # from line-reading from current file
+
+            except FileNotFoundError:
+                print('File ' + path + " was not found.")
+
+
+        # end of loop for a file
+
+result.close()
+print(str(round(time.time() - start,2)) + ' seconds to completion.')

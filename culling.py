@@ -5,10 +5,11 @@
 
 # STEP 1
 with open('masterList.csv', 'r') as src:
+    next(src) # because headers
     confirmed = []
     for line in src:
         try:
-            # python list indexing lets us grab the last element this way.
+            # python list indexing lets us grab the last element this way, which is filename
             f = line.split(',')[-1]
             confirmed.append(f.strip('\n'))
         except IndexError:
@@ -24,3 +25,4 @@ with open('move.bash', 'w') as dest:
         for filename in src:
             if filename.strip('\n') not in confirmed:
                 dest.write('mv \"Data/' + filename.strip('\n') + '\" Unmatched\n')
+# The script is made, now just run it from command line: bash move.bash
