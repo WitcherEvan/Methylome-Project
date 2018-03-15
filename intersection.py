@@ -1,6 +1,6 @@
 import re
 
-with open('BuildingBlocks/SequenceFiles.txt', 'r') as files:
+with open('BuildingBlocks/sequenceFiles.txt', 'r') as files:
     # Contains list of zipped sequence files downloaded.
     # Create dictionary for GSM# -> filename
     numToFile = {}

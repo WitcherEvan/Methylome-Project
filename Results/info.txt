@@ -1,0 +1,4 @@
+This folder contains the results of analyzing methylomes
+- in csv format
+- one column per methylome
+- rows contain different calculations

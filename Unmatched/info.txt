@@ -1,0 +1,2 @@
+This directory holds unmatched methylome sequences.
+They are moved here by running culling.py followed by move.bash

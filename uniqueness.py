@@ -1,5 +1,20 @@
 # A debugging tool I modify for many things
 
+
+# import os
+# query = './testDir/testFile.txt'
+# try:
+#     result = open(query, 'w')
+#     result.write('testing text\n')
+#     # add others if necessary
+#
+# except FileNotFoundError: # because directory Results was not found
+#     #dir_path = os.path.dirname(os.path.realpath(__file__))
+#     os.mkdir('./testDir')
+#     result = open(query, 'w')
+#     result.write('error-corrected text\n')
+#     # it works
+
 # with open('masterList.csv','r') as src:
 #     items = []
 #     count = 0

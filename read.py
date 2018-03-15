@@ -90,9 +90,15 @@ if (len(sys.argv) > 1): # then we have parameters
         index = index+1
 
 query = './Results/chr'+str(chromo)+'_range_'+str(minPos)+'-'+str(maxPos)+'_from_'+batch.split('.')[0]+'.csv'
-result = open(query, 'w')
-result.write('sequence,overall,CG_context,CHH_context,CHG_context\n')
-# add others if necessary
+try:
+    result = open(query, 'w')
+    result.write('sequence,overall,CG_context,CHH_context,CHG_context\n')
+    # add others if necessary
+
+except FileNotFoundError: # When dir Results does not exist
+    os.mkdir('./Results')
+    result = open(query, 'w')
+    result.write('sequence,overall,CG_context,CHH_context,CHG_context\n')
 
 # start reading sequences from designated batch-file
 with open('./Batch/' + batch, 'r') as seqList:
