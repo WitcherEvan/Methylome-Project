@@ -89,15 +89,15 @@ if (len(sys.argv) > 1): # then we have parameters
 # Increment index at end of loop
         index = index+1
 
-query = './Results/chr'+str(chromo)+'_range_'+str(minPos)+'-'+str(maxPos)+'_from_'+batch.split('.')[0]+'.csv'
+description = './Results/reads_chr'+str(chromo)+'_range_'+str(minPos)+'-'+str(maxPos)+'_from_'+batch.split('.')[0]+'.csv'
 try:
-    result = open(query, 'w')
+    result = open(description, 'w')
     result.write('sequence,overall,CG_context,CHH_context,CHG_context\n')
     # add others if necessary
 
 except FileNotFoundError: # When dir Results does not exist
     os.mkdir('./Results')
-    result = open(query, 'w')
+    result = open(description, 'w')
     result.write('sequence,overall,CG_context,CHH_context,CHG_context\n')
 
 # start reading sequences from designated batch-file
@@ -106,14 +106,7 @@ with open('./Batch/' + batch, 'r') as seqList:
         path = dirName + filename.strip('\n')
         subStart = time.time()
         # Reset for every new file
-        CG_methyl = 0
-        CG_total = 0
-        CHH_methyl = 0
-        CHH_total = 0
-        CHG_methyl = 0
-        CHG_total = 0
-        linecount = 0
-        all_methyls = 0
+        CG_methyl=CG_total=CHH_methyl=CHH_total=CHG_methyl=CHG_total=linecount=all_methyls = 0
 
         # Seperate branch of opertions for default behaviour. Doesnt feel great,
         # quasi-duplicating my code this way, but it helps keep both functionalities
@@ -147,15 +140,18 @@ with open('./Batch/' + batch, 'r') as seqList:
 
                         match = re.search(r'C[A,T,C][A,T,C]', columns[3])
                         if match:
-                            CHH_methyl = CHH_methyl + int(columns[4])
+                            CHH_methyl = CHH_methyl + int(columns[6])
                             CHH_total += 1
                         # End of line-loop. Gets next line in myzip file
 
                     # on finishing all lines of a file,
                     overall = str(round(all_methyls / linecount, 6))
-                    CG_context = str(round((CG_methyl / CG_total), 6))
-                    CHH_context = str(round((CHH_methyl / CHH_total), 6))
-                    CHG_context = str(round((CHG_methyl / CHG_total), 6))
+                    # CG_context = str(round((CG_methyl / CG_total), 6))
+                    # CHH_context = str(round((CHH_methyl / CHH_total), 6))
+                    # CHG_context = str(round((CHG_methyl / CHG_total), 6))
+                    CG_context = str(round((CG_methyl / all_methyls), 6))
+                    CHH_context = str(round((CHH_methyl / all_methyls), 6))
+                    CHG_context = str(round((CHG_methyl / all_methyls), 6))
 
                     # write results to csv file to save answers
                     result.write(path +','+ overall +','+ CG_context +','+ CHH_context +','+ CHG_context +'\n')
@@ -175,10 +171,10 @@ with open('./Batch/' + batch, 'r') as seqList:
                         row = byteForm.decode('utf-8').strip('\n')
                         columns = row.split('\t')
 
-                        if int(columns[0]) < chromo or int(columns[1]) < minPos: # if current position less that target,
+                        if int(columns[0]) < chromo or int(columns[1]) < minPos: # if current chr/position less that target,
                                 continue # with next line in myzip
 
-                        # Here we've passed the checks for finding our target region.
+                        # Here we've passed the checks for finding our target chromosome.
                         if int(columns[0]) == chromo and int(columns[1]) <= maxPos: # Do things
                             all_methyls += int(columns[6])
                             linecount+=1
@@ -200,7 +196,7 @@ with open('./Batch/' + batch, 'r') as seqList:
 
                             continue # to next line in myzip file
 
-                        else: # we have completed target range on a file
+                        else: # we have completed target chr-range on a sequence
                             overall = str(round(all_methyls / linecount, 6))
                             CG_context = str(round((CG_methyl / CG_total), 6))
                             CHH_context = str(round((CHH_methyl / CHH_total), 6))

@@ -12,7 +12,7 @@ For housekeeping purposes, there exists culling.py. After running intersection.p
 
 read.py has command-line language to make specific queries about sequences. Computes fraction of methylation overall and for each cytosine context. It also outputs to command-line the time taken on completing each methylome.
 --- Command line arguments ---
-None are required, and no ordering enforced.
+None are required, in that it won't break, but you probably want to specify a chromosome. No ordering enforced.
 Keep 'chr' and 'range' paired with their value as indicated.
 -- chr [1-5]    tag is chr, followed by an integer 1-5 for chromosome number
 -- range #-#    range over which we will analyze. Numbers must be positive integers seperated by '-'.
