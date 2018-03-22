@@ -17,3 +17,5 @@ Keep 'chr' and 'range' paired with their value as indicated.
 -- chr [1-5]    tag is chr, followed by an integer 1-5 for chromosome number
 -- range #-#    range over which we will analyze. Numbers must be positive integers seperated by '-'.
 -- filename     a file containing the filenames of sequences we are interested in. These files should be in Batch directory.
+
+segSites.py functions just like read.py for command-line arguments. As long as the 'filename' found in ./Batch/ has 2 or more methylomes, it compares all of them to each other, to produce number and percent of Shared Methylation Sites, Segregating Sites, across all contexts.

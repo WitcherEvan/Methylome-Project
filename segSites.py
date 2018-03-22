@@ -208,16 +208,20 @@ if chromo == -1:
                 print(str(round(time.time() - subStart, 2)) + 'seconds for a comparison.')
 
             # Write results to file. So many things, feels better to write as a paragraph.
-            result.write('Comparing '+str(seq1)+' to '+str(seq2)+ '.\n')
-            result.write('Methylated total: '+str(total_m)+'. Segregation total: '+str(total_s)+'.\n')
-            result.write('Percent methylated: '+str(total_m/(total_m+total_s))+'. Percent segregation: '+str(total_s/(total_s+total_m))+'\n')
-            result.write('CG context. Methylations: '+str(CG_m)+'. Segregations: '+str(CG_s)+'.\n')
-            result.write('Percent methylation: '+str(CG_m/(CG_m+CG_s))+'. Percent segregation: '+str(CG_s/(CG_s+CG_m))+'.\n')
-            result.write('CHG context. Methylations: '+str(CHG_m)+'. Segregations: '+str(CHG_s)+'.\n')
-            result.write('Percent methylation: '+str(CHG_m/(CHG_m+CHG_s))+'. Percent segregation: '+str(CHG_s/(CHG_s+CHG_m))+'.\n')
-            result.write('CHH context. Methylations: '+str(CHH_m)+'. Segregations: '+str(CHH_s)+'.\n')
-            result.write('Percent methylation: '+str(CHH_m/(CHH_m+CHH_s))+'. Percent segregation: '+str(CHH_s/(CHH_s+CHH_m))+'.\n\n')
-            result.write('Context mismatches, where mc_class for a position differ: '+str(contextMismatch))
+                result.write('Comparing '+str(seq1)+' to '+str(seq2)+ ':\n')
+                result.write('All Shared Methylations: '+str(total_m)+', Percent All Shared Methylations: '+str(total_m/(total_m+total_s))+'.\n')
+                result.write('All Segregations: '+str(total_s)+', Percent All Segregations: '+str(total_s/(total_s+total_m))+'\n')
+                result.write('Mismatched contexts (1 or 2 methylations at a position where mc_class differs): '+str(contextMismatch))
+
+                result.write('CG context:\nCG Shared Methylations: '+str(CG_m)+', Percent Methylation: '+str(CG_m/(CG_m+CG_s))+'.\n')
+                result.write('CG Segregations: '+str(CG_s)+', Percent Segregation: '+str(CG_s/(CG_s+CG_m))+'.\n')
+
+                result.write('CHG context:\nCHG Shared Methylations: '+str(CHG_m)+', Percent Methylation: '+str(CHG_m/(CHG_m+CHG_s))+'.\n')
+                result.write('CHG Segregations: '+str(CHG_s)+', Percent Segregation: '+str(CHG_s/(CHG_s+CHG_m))+'.\n')
+
+                result.write('CHH context:\nCHH Shared Methylations: '+str(CHH_m)+', Percent Methylation: '+str(CHH_m/(CHH_m+CHH_s))+'.\n')
+                result.write('CHH Segregations: '+str(CHH_s)+', Percent Segregation: '+str(CHH_s/(CHH_s+CHH_m))+'.\n\n')
+
             f1.close()
             f2.close()
             index2 = index2 +1 # end of inner
@@ -322,16 +326,20 @@ else: # This branch is where a single chromosome is specified.
                 print(str(round(time.time() - subStart, 2)) + 'seconds for a comparison.')
 
             # Write results to file. So many things, feels better to write as a paragraph.
-            result.write('Comparing '+str(seq1)+' to '+str(seq2)+ '.\n')
-            result.write('Methylated total: '+str(total_m)+'. Segregation total: '+str(total_s)+'.\n')
-            result.write('Percent methylated: '+str(total_m/(total_m+total_s))+'. Percent segregation: '+str(total_s/(total_s+total_m))+'\n')
-            result.write('CG context. Methylations: '+str(CG_m)+'. Segregations: '+str(CG_s)+'.\n')
-            result.write('Percent methylation: '+str(CG_m/(CG_m+CG_s))+'. Percent segregation: '+str(CG_s/(CG_s+CG_m))+'.\n')
-            result.write('CHG context. Methylations: '+str(CHG_m)+'. Segregations: '+str(CHG_s)+'.\n')
-            result.write('Percent methylation: '+str(CHG_m/(CHG_m+CHG_s))+'. Percent segregation: '+str(CHG_s/(CHG_s+CHG_m))+'.\n')
-            result.write('CHH context. Methylations: '+str(CHH_m)+'. Segregations: '+str(CHH_s)+'.\n')
-            result.write('Percent methylation: '+str(CHH_m/(CHH_m+CHH_s))+'. Percent segregation: '+str(CHH_s/(CHH_s+CHH_m))+'.\n\n')
-            result.write('Context mismatches, where mc_class for a position differ: '+str(contextMismatch))
+            result.write('Comparing '+str(seq1)+' to '+str(seq2)+ ':\n')
+            result.write('All Shared Methylations: '+str(total_m)+', Percent All Shared Methylations: '+str(total_m/(total_m+total_s))+'.\n')
+            result.write('All Segregations: '+str(total_s)+', Percent All Segregations: '+str(total_s/(total_s+total_m))+'\n')
+            result.write('Mismatched contexts (1 or 2 methylations at a position where mc_class differs): '+str(contextMismatch))
+
+            result.write('CG context:\nCG Shared Methylations: '+str(CG_m)+', Percent Methylation: '+str(CG_m/(CG_m+CG_s))+'.\n')
+            result.write('CG Segregations: '+str(CG_s)+', Percent Segregation: '+str(CG_s/(CG_s+CG_m))+'.\n')
+
+            result.write('CHG context:\nCHG Shared Methylations: '+str(CHG_m)+', Percent Methylation: '+str(CHG_m/(CHG_m+CHG_s))+'.\n')
+            result.write('CHG Segregations: '+str(CHG_s)+', Percent Segregation: '+str(CHG_s/(CHG_s+CHG_m))+'.\n')
+
+            result.write('CHH context:\nCHH Shared Methylations: '+str(CHH_m)+', Percent Methylation: '+str(CHH_m/(CHH_m+CHH_s))+'.\n')
+            result.write('CHH Segregations: '+str(CHH_s)+', Percent Segregation: '+str(CHH_s/(CHH_s+CHH_m))+'.\n\n')
+
             f1.close()
             f2.close()
             index2 = index2 +1 # end of inner
