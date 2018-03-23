@@ -192,9 +192,9 @@ if chromo == -1:
                             line2 = next(f2).decode('utf-8').strip('\n').split('\t')
 
                         # Adjust positions.
-                        elif line1[1] > line2[1]:
+                        elif int(line1[1]) > int(line2[1]):
                             line2 = next(f2).decode('utf-8').strip('\n').split('\t')
-                        elif line1[1] < line2[1]:
+                        elif int(line1[1]) < int(line2[1]):
                             line1 = next(f1).decode('utf-8').strip('\n').split('\t')
 
                     else: # dealing with unusual files, since the chr don't match.
@@ -244,85 +244,89 @@ else: # This branch is where a single chromosome is specified.
             f2 = gzip.open(dirName+seq2, 'r')
             next(f2) # skip headers
 
-            total_m = total_s = CG_m = CG_s = CHH_m = CHH_s = CHG_m = CHG_s = 0
+            total_m = total_s = CG_m = CG_s = CHH_m = CHH_s = CHG_m = CHG_s = contextMismatch = 0
 
             # -------- Now we are in the comparison part --------
-            try:
+            line1 = next(f1).decode('utf-8').strip('\n').split('\t') # get next lines
+            line2 = next(f2).decode('utf-8').strip('\n').split('\t')
+
+            # Set files to start at designated chr and minPos:
+            while chromo > int(line1[0]):
                 line1 = next(f1).decode('utf-8').strip('\n').split('\t') # get next lines
+            while int(line1[1]) < minPos: # get to start position
+                line1 = next(f1).decode('utf-8').strip('\n').split('\t')
+            while chromo > int(line2[0]):
+                line2 = next(f2).decode('utf-8').strip('\n').split('\t')
+            while int(line2[1]) < minPos:
                 line2 = next(f2).decode('utf-8').strip('\n').split('\t')
 
-                while 1:
-                    # get the desired chromosome. Not assuming both sequences
-                    # will reach it at the same time, so we increment seperately.
-                    while chromo != line1[0]:
+            try:
+                while chromo == int(line1[0]) and chromo == int(line2[0]):
+                    if  line1[1] == line2[1]: # positions match. Compare:
+
+                    # leave when we go past taget range
+                        if int(line1[1]) > maxPos:
+                            break
+
+                        check = int(line2[6]) + int(line1[6])
+
+                        if check == 2: # matching
+                            if line1[3] == line2[3]:
+
+                                match = re.search(r'CG', line1[3])
+                                if match:
+                                    CG_m = CG_m + 1
+                                    total_m = total_m +1
+
+                                match = re.search(r'C[A,T,C]G', line1[3])
+                                if match:
+                                    CHG_m = CHG_m + 1
+                                    total_m = total_m +1
+
+                                match = re.search(r'C[A,T,C][A,T,C]', line1[3])
+                                if match:
+                                    CHH_m = CHH_m +1
+                                    total_m = total_m +1
+
+                            else:
+                                contextMismatch = contextMismatch +1
+
+                        elif check == 1: # segregation
+                            if line1[3] == line2[3]:
+
+                                match = re.search(r'CG', line1[3])
+                                if match:
+                                    CG_s = CG_s + 1
+                                    total_s = total_s +1
+
+                                match = re.search(r'C[A,T,C]G', line1[3])
+                                if match:
+                                    CHG_s = CHG_s + 1
+                                    total_s = total_s +1
+
+                                match = re.search(r'C[A,T,C][A,T,C]', line1[3])
+                                if match:
+                                    CHH_s = CHH_s +1
+                                    total_s = total_s +1
+                            else:
+                                contextMismatch = contextMismatch +1
+
+                        # end of section matched, move forward both.
                         line1 = next(f1).decode('utf-8').strip('\n').split('\t') # get next lines
-                    while chromo != line2[0]:
                         line2 = next(f2).decode('utf-8').strip('\n').split('\t')
 
-                    while chromo == line1[0] and chromo == line2[0]:
-                        if  line1[1] == line2[1]: # positions match. Compare:
-                            check = int(line2[6]) + int(line1[6])
+                    # adjust positions
+                    elif int(line1[1]) > int(line2[1]):
+                        line2 = next(f2).decode('utf-8').strip('\n').split('\t')
+                    elif int(line1[1]) < int(line2[1]):
+                        line1 = next(f1).decode('utf-8').strip('\n').split('\t')
 
-                            # matching
-                            if check == 2: # line1[6] == 1 and line2[6] == 1:
-                                if line1[3] == line2[3]:
-
-                                    match = re.search(r'CG', line1[3])
-                                    if match:
-                                        CG_m = CG_m + 1
-                                        total_m = total_m +1
-
-                                    match = re.search(r'C[A,T,C]G', line1[3])
-                                    if match:
-                                        CHG_m = CHG_m + 1
-                                        total_m = total_m +1
-
-                                    match = re.search(r'C[A,T,C][A,T,C]', line1[3])
-                                    if match:
-                                        CHH_m = CHH_m +1
-                                        total_m = total_m +1
-
-                                else:
-                                    contextMismatch = contextMismatch +1
-
-                            # segregation
-                            elif check == 1:
-                                if line1[3] == line2[3]:
-
-                                    match = re.search(r'CG', line1[3])
-                                    if match:
-                                        CG_s = CG_s + 1
-                                        total_s = total_s +1
-
-                                    match = re.search(r'C[A,T,C]G', line1[3])
-                                    if match:
-                                        CHG_s = CHG_s + 1
-                                        total_s = total_s +1
-
-                                    match = re.search(r'C[A,T,C][A,T,C]', line1[3])
-                                    if match:
-                                        CHH_s = CHH_s +1
-                                        total_s = total_s +1
-                                else:
-                                    contextMismatch = contextMismatch +1
-
-                            # end of section matched, move forward both.
-                            line1 = next(f1).decode('utf-8').strip('\n').split('\t') # get next lines
-                            line2 = next(f2).decode('utf-8').strip('\n').split('\t')
-
-                        # adjust positions
-                        elif line1[1] > line2[1]:
-                            line2 = next(f2).decode('utf-8').strip('\n').split('\t')
-                        elif line1[1] < line2[1]:
-                            line1 = next(f1).decode('utf-8').strip('\n').split('\t')
-
-                    # the chromosome of interest is complete.
-                    print('~~End of comparison '+seq1+' & '+seq2)
-                    print(str(round(time.time() - subStart, 2)) + 'seconds for a comparison.')
-                    break # from `while 1` loop
-
-            except IndexError:
+                # the chromosome of interest is complete.
                 print('End of comparison '+seq1+' & '+seq2)
+                print(str(round(time.time() - subStart, 2)) + 'seconds for a comparison.')
+
+            except StopIteration: # if we stop early which we shouldnt
+                print('~End of comparison '+seq1+' & '+seq2)
                 print(str(round(time.time() - subStart, 2)) + 'seconds for a comparison.')
 
             # Write results to file. So many things, feels better to write as a paragraph.
