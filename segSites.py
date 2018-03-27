@@ -13,6 +13,7 @@ start = time.time()
 # range #-#     range over which we will analyze.
 #               Numbers must be positive integers seperated by '-'
 # filename      a file containing the filenames of sequences we are interested in.
+# HRR           for a Human Readable Report
 
 # The different columns of Methylome csv data:
 # [0] : chromosome number, 1 through 5
@@ -31,7 +32,9 @@ dirName = 'Data/'
 # default values. Change based on goals and convenience
 minPos = 0
 maxPos = 31000000 # 31 million covers the longerst chromosome.
-chromo = -1 # will consider all chromosomes by default
+chromo = 'all' # will consider all chromosomes by default
+hrr = 0
+defaultRange = 1
 
 # Parsing input section. Saves the last valid inputs for a category.
 if (len(sys.argv) > 1): # then we have parameters
@@ -40,15 +43,20 @@ if (len(sys.argv) > 1): # then we have parameters
     while ( index <= len(sys.argv)-1 ):
         arg = sys.argv[index]
 
+#------------- Human readable report -------------#
+        if arg == 'HRR':
+            hrr = 1
+
 #------------- chromosome number evaluation -------------#
-        if (arg == 'chr' and index+1 <= len(sys.argv)-1): # avoid IndexOutOfBounds
+        elif (arg == 'chr' and index+1 <= len(sys.argv)-1): # avoid IndexOutOfBounds
             try:
                 num = int(sys.argv[index+1])
                 # this line depends on our knowledge that there are 5 chromosomes
                 if num > 0 and num <= 5:
                     chromo = num
                 else:
-                    print('Please use valid chromosome number, 1 to 5. Using default value.')
+                    print('Please use valid chromosome number, 1 to 5, or omit \'chr\' to consider all chromosomes.')
+                    sys.exit()
                 # Increment index past the value given, since the lack of valueError suggests the input value
                 # was intended as a chromosome number, but was invalid.
                 index = index+1
@@ -59,6 +67,7 @@ if (len(sys.argv) > 1): # then we have parameters
 #------------- Base pair position evaluation -------------#
         elif (arg == 'range' and index+1 <= len(sys.argv)-1): # avoid IndexOutOfBounds
             try:
+                defaultRange = 0
                 rn = sys.argv[index+1]
                 rmin = int(rn.split('-')[0])
                 rmax = int(rn.split('-')[1])
@@ -104,16 +113,25 @@ if len(confirmed) < 2:
 
 
 # -------- Prep the result file --------
-description = './Results/comparison_chr'+str(chromo)+'_range_'+str(minPos)+'-'+str(maxPos)+'_from_'+str(confirmed)+'.txt'
+if defaultRange == 1:
+    description = './Results/Segregating_chr_'+str(chromo)+'_range_full_from_'+str(confirmed)+'.txt'
+else:
+    description = './Results/Segregating_chr_'+str(chromo)+'_range_'+str(minPos)+'-'+str(maxPos)+'_from_'+str(confirmed)+'.txt'
 try:
     result = open(description, 'w')
 except FileNotFoundError: # When dir Results does not exist
     os.mkdir('./Results')
     result = open(description, 'w')
-
+# HEADERS
+result.write('ecotype1,ecotype2,chromosome,start-pos,end-pos,total-seg-sites,total-perc-seg,CG-seg,CG-perc,CHG-seg,CHG-perc,CHH-seg,CHH-perc\n')
+if hrr == 1:
+    if defaultRange == 1:
+        report = open('./Results/SegReport_chr_'+str(chromo)+'_range_full_from_'+str(confirmed)+'.txt', 'w')
+    else:
+        report = open('./Results/SegReport_chr_'+str(chromo)+'_range_'+str(minPos)+'-'+str(maxPos)+'_from_'+str(confirmed)+'.txt', 'w')
 
 # The branch for looking at whole methylomes
-if chromo == -1:
+if chromo == 'all':
 
     # loop to do all n*(n-1)/2 comparisons given n methylomes
     index1 = 0
@@ -207,20 +225,18 @@ if chromo == -1:
                 print('End of comparison '+seq1+' & '+seq2)
                 print(str(round(time.time() - subStart, 2)) + 'seconds for a comparison.')
 
-            # Write results to file. So many things, feels better to write as a paragraph.
-                result.write('Comparing '+str(seq1)+' to '+str(seq2)+ ':\n')
-                result.write('All Shared Methylations: '+str(total_m)+', Percent All Shared Methylations: '+str(total_m/(total_m+total_s))+'\n')
-                result.write('All Segregations: '+str(total_s)+', Percent All Segregations: '+str(total_s/(total_s+total_m))+'\n')
-                result.write('Mismatched contexts (1 or 2 methylations at a position where mc_class differs): '+str(contextMismatch)+'\n')
+            # Write results to file according to ('methylome1,methylome2,chromosome(s),start-position,end-position,total-segregating-sites,total-percent-segregating,CG-segregating,CG-percent,CHG-segregating,CHG-percent,CHH-segregating,CHH-percent\n')
+            result.write(seq1+','+seq2+str(chromo)+','+str(minPos)+','+str(maxPos)+','+str(total_s)+','+str(total_s/(total_s+total_m))+',')
+            result.write(str(CG_s)+','+str(CG_s/(CG_s+CG_m))+','+str(CHG_s)+','+str(CHG_s/(CHG_s+CHG_m))+','+str(CHH_s)+','+str(CHH_s/(CHH_s+CHH_m))+'\n')
 
-                result.write('CG context:\nCG Shared Methylations: '+str(CG_m)+', Percent Methylation: '+str(CG_m/(CG_m+CG_s))+'\n')
-                result.write('CG Segregations: '+str(CG_s)+', Percent Segregation: '+str(CG_s/(CG_s+CG_m))+'.\n')
-
-                result.write('CHG context:\nCHG Shared Methylations: '+str(CHG_m)+', Percent Methylation: '+str(CHG_m/(CHG_m+CHG_s))+'\n')
-                result.write('CHG Segregations: '+str(CHG_s)+', Percent Segregation: '+str(CHG_s/(CHG_s+CHG_m))+'.\n')
-
-                result.write('CHH context:\nCHH Shared Methylations: '+str(CHH_m)+', Percent Methylation: '+str(CHH_m/(CHH_m+CHH_s))+'\n')
-                result.write('CHH Segregations: '+str(CHH_s)+', Percent Segregation: '+str(CHH_s/(CHH_s+CHH_m))+'\n\n')
+            # Optional textfile report
+            if hrr == 1:
+                report.write('Comparing '+str(seq1)+' to '+str(seq2)+ 'where chromosome of interest is '+str(chromo)+', range is'+str(range)+':\n')
+                report.write('Total Segregations: '+str(total_s)+', Total Percent Segregation: '+str(total_s/(total_s+total_m))+'\n')
+                report.write('Mismatched contexts (1 or 2 methylations at a position where mc_class differs): '+str(contextMismatch)+'\n')
+                report.write('CG Segregations: '+str(CG_s)+', Percent Segregation: '+str(CG_s/(CG_s+CG_m))+'.\n')
+                report.write('CHG Segregations: '+str(CHG_s)+', Percent Segregation: '+str(CHG_s/(CHG_s+CHG_m))+'.\n')
+                report.write('CHH Segregations: '+str(CHH_s)+', Percent Segregation: '+str(CHH_s/(CHH_s+CHH_m))+'\n\n')
 
             f1.close()
             f2.close()
@@ -329,20 +345,18 @@ else: # This branch is where a single chromosome is specified.
                 print('~End of comparison '+seq1+' & '+seq2)
                 print(str(round(time.time() - subStart, 2)) + 'seconds for a comparison.')
 
-            # Write results to file. So many things, feels better to write as a paragraph.
-            result.write('Comparing '+str(seq1)+' to '+str(seq2)+ ':\n')
-            result.write('All Shared Methylations: '+str(total_m)+', Percent All Shared Methylations: '+str(total_m/(total_m+total_s))+'\n')
-            result.write('All Segregations: '+str(total_s)+', Percent All Segregations: '+str(total_s/(total_s+total_m))+'\n')
-            result.write('Mismatched contexts (1 or 2 methylations at a position where mc_class differs): '+str(contextMismatch)+'\n')
+                # Write results to file according to ('methylome1,methylome2,chromosome(s),start-position,end-position,total-segregating-sites,total-percent-segregating,CG-segregating,CG-percent,CHG-segregating,CHG-percent,CHH-segregating,CHH-percent\n')
+                result.write(seq1+','+seq2+str(chromo)+','+str(minPos)+','+str(maxPos)+','+str(total_s)+','+str(total_s/(total_s+total_m))+',')
+                result.write(str(CG_s)+','+str(CG_s/(CG_s+CG_m))+','+str(CHG_s)+','+str(CHG_s/(CHG_s+CHG_m))+','+str(CHH_s)+','+str(CHH_s/(CHH_s+CHH_m))+'\n')
 
-            result.write('CG context:\nCG Shared Methylations: '+str(CG_m)+', Percent Methylation: '+str(CG_m/(CG_m+CG_s))+'\n')
-            result.write('CG Segregations: '+str(CG_s)+', Percent Segregation: '+str(CG_s/(CG_s+CG_m))+'\n')
-
-            result.write('CHG context:\nCHG Shared Methylations: '+str(CHG_m)+', Percent Methylation: '+str(CHG_m/(CHG_m+CHG_s))+'\n')
-            result.write('CHG Segregations: '+str(CHG_s)+', Percent Segregation: '+str(CHG_s/(CHG_s+CHG_m))+'\n')
-
-            result.write('CHH context:\nCHH Shared Methylations: '+str(CHH_m)+', Percent Methylation: '+str(CHH_m/(CHH_m+CHH_s))+'\n')
-            result.write('CHH Segregations: '+str(CHH_s)+', Percent Segregation: '+str(CHH_s/(CHH_s+CHH_m))+'\n\n')
+                # Optional textfile report
+                if hrr == 1:
+                    report.write('Comparing '+str(seq1)+' to '+str(seq2)+ 'where chromosome of interest is '+str(chromo)+', range is'+str(range)+':\n')
+                    report.write('Total Segregations: '+str(total_s)+', Total Percent Segregation: '+str(total_s/(total_s+total_m))+'\n')
+                    report.write('Mismatched contexts (1 or 2 methylations at a position where mc_class differs): '+str(contextMismatch)+'\n')
+                    report.write('CG Segregations: '+str(CG_s)+', Percent Segregation: '+str(CG_s/(CG_s+CG_m))+'.\n')
+                    report.write('CHG Segregations: '+str(CHG_s)+', Percent Segregation: '+str(CHG_s/(CHG_s+CHG_m))+'.\n')
+                    report.write('CHH Segregations: '+str(CHH_s)+', Percent Segregation: '+str(CHH_s/(CHH_s+CHH_m))+'\n\n')
 
             f1.close()
             f2.close()
@@ -351,4 +365,5 @@ else: # This branch is where a single chromosome is specified.
         index1 = index1 +1 # end of outer
 
 result.close()
+report.close()
 print(str(round(time.time() - start,2)) + ' seconds to completion.')

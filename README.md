@@ -10,12 +10,17 @@ The included csv files have the dashes and spaces changed to underscores, to mat
 
 For housekeeping purposes, there exists culling.py. After running intersection.py and getting masterList.csv, running culling.py will create the Bash script move.bash. Running this script sends all excluded methylomes from Data to Unmatched.
 
-read.py has command-line language to make specific queries about sequences. Computes fraction of methylation overall and for each cytosine context. It also outputs to command-line the time taken on completing each methylome.
+summarize.py computes fraction of methylation overall and for each cytosine context. Has command-line language to summarize more specific regions of methlyomes. It also outputs to command-line the time to complete each methylome.
 --- Command line arguments ---
-None are required, in that it won't break, but you probably want to specify a chromosome. No ordering enforced.
-Keep 'chr' and 'range' paired with their value as indicated.
+None are required. No ordering enforced. Keep 'chr' and 'range' paired with their value as indicated.
 -- chr [1-5]    tag is chr, followed by an integer 1-5 for chromosome number
 -- range #-#    range over which we will analyze. Numbers must be positive integers seperated by '-'.
 -- filename     a file containing the filenames of sequences we are interested in. These files should be in Batch directory.
 
-segSites.py functions just like read.py for command-line arguments. As long as the 'filename' found in ./Batch/ has 2 or more methylomes, it compares all of them to each other, to produce number and percent of Shared Methylation Sites, Segregating Sites, across all contexts.
+segSites.py compares two methylomes to count segregating sites: where the same positions have same mc_class but have different methylation status. Functions just like summarize.py for command-line arguments, with one additional option. As long as the 'filename' found in ./Batch/ has 2 or more methylomes, it compares all of them to each other, to produce number and percent of Segregating Sites, across all contexts. 1 - % segregation = % shared methylation.
+--- Command line arguments ---
+None are required, no ordering enforced. Keep 'chr' and 'range' paired with their value as indicated.
+-- chr [1-5]    tag is chr, followed by an integer 1-5 for chromosome number
+-- range #-#    range over which we will analyze. Numbers must be positive integers seperated by '-'.
+-- filename     a file containing the filenames of sequences we are interested in. These files should be in Batch directory.
+-- HRR          Short for Human Readable Report, this argument will write a textfile describing the result of each comparison.

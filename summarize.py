@@ -26,14 +26,15 @@ start = time.time()
 
 # Important for use: Data is the folder/directory name under which the
 # sequence files are kept. Change here or on system for consistency.
-# This read.py script should be in the same directory as your Data directory.
+# This summarize.py script should be in the same directory as your Data directory.
 dirName = 'Data/'
 
 # default values. Change based on goals and convenience
 batch = 'default.txt'
 minPos = 0
 maxPos = 31000000 # 31 million covers the longerst chromosome.
-chromo = -1 # will consider all chromosomes by default
+chromo = 'all' # will consider all chromosomes by default
+defaultRange = 1
 
 # Parsing input section:
 # The current setup would keep taking inputs, and save the last valid one.
@@ -63,6 +64,7 @@ if (len(sys.argv) > 1): # then we have parameters
 #------------- Base pair position evaluation -------------#
         elif (arg == 'range' and index+1 <= len(sys.argv)-1): # avoid IndexOutOfBounds
             try:
+                defaultRange = 0
                 rn = sys.argv[index+1]
                 rmin = int(rn.split('-')[0])
                 rmax = int(rn.split('-')[1])
@@ -89,7 +91,11 @@ if (len(sys.argv) > 1): # then we have parameters
 # Increment index at end of loop
         index = index+1
 
-description = './Results/reads_chr'+str(chromo)+'_range_'+str(minPos)+'-'+str(maxPos)+'_from_'+batch.split('.')[0]+'.csv'
+# ------ Prep the result file ------
+if defaultRange == 1:
+    description = './Results/Summary_chr'+str(chromo)+'_range_full_from_'+batch.split('.')[0]+'.csv'
+else:
+    description = './Results/Summary_chr'+str(chromo)+'_range_'+str(minPos)+'-'+str(maxPos)+'_from_'+batch.split('.')[0]+'.csv'
 try:
     result = open(description, 'w')
     result.write('sequence,overall,CG_context,CHH_context,CHG_context\n')
@@ -98,7 +104,7 @@ try:
 except FileNotFoundError: # When dir Results does not exist
     os.mkdir('./Results')
     result = open(description, 'w')
-    result.write('sequence,overall,CG_context,CHH_context,CHG_context\n')
+    result.write('ecotype,chromosome,start-pos,end-pos,overall,CG_context,CHH_context,CHG_context\n')
 
 # start reading sequences from designated batch-file
 with open('./Batch/' + batch, 'r') as seqList:
@@ -110,8 +116,8 @@ with open('./Batch/' + batch, 'r') as seqList:
 
         # Seperate branch of opertions for default behaviour. Doesnt feel great,
         # quasi-duplicating my code this way, but it helps keep both functionalities
-        # within this one read.py script
-        if chromo == -1:
+        # within this one summarize.py script
+        if chromo == 'all':
             try:
                 with gzip.open(path, 'r') as myzip:
                     next(myzip) # skip title headers
@@ -154,7 +160,7 @@ with open('./Batch/' + batch, 'r') as seqList:
                     CHG_context = str(round((CHG_methyl / all_methyls), 6))
 
                     # write results to csv file to save answers
-                    result.write(path +','+ overall +','+ CG_context +','+ CHH_context +','+ CHG_context +'\n')
+                    result.write(path+','+str(chromo)+','+str(minPos)+','+str(maxPos)+','+ overall +','+ CG_context +','+ CHH_context +','+ CHG_context +'\n')
                     # timer per file
                     print(str(round(time.time() - subStart, 2)) + 'seconds for '+ path)
 
@@ -203,7 +209,7 @@ with open('./Batch/' + batch, 'r') as seqList:
                             CHG_context = str(round((CHG_methyl / CHG_total), 6))
 
                             # write results to csv file to save answers
-                            result.write(path +','+ overall +','+ CG_context +','+ CHH_context +','+ CHG_context +'\n')
+                            result.write(path+','+str(chromo)+','+str(minPos)+','+str(maxPos)+','+ overall +','+ CG_context +','+ CHH_context +','+ CHG_context +'\n')
                             # timer per file
                             print(str(round(time.time() - subStart, 2)) + 'seconds for '+ path)
                             break # from line-reading from current file
