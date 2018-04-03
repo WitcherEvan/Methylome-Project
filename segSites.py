@@ -35,6 +35,8 @@ maxPos = 31000000 # 31 million covers the longerst chromosome.
 chromo = 'all' # will consider all chromosomes by default
 hrr = 0
 defaultRange = 1
+minBases = ''
+methylRatio = ''
 
 # Parsing input section. Saves the last valid inputs for a category.
 if (len(sys.argv) > 1): # then we have parameters
@@ -81,6 +83,27 @@ if (len(sys.argv) > 1): # then we have parameters
                 print('Error: \'range\' must be followed by dash-seperated min-max base pair positions.')
                 sys.exit()
 
+#------------- Minimum bases requirement -------------#
+        elif (arg == 'minB' and index+1 <= len(sys.argv)-1): # avoid IndexOutOfBounds
+            try:
+                minBases = int(sys.argv[index+1])
+                index = index+1
+            except ValueError:
+                print('Error: \'minB\' must be followed by a number, to represent minimum number of bases for a position to be considered methylated.')
+                sys.exit()
+
+#------------- Methylation ratio requirement -------------#
+        elif (arg == 'ratio' and index+1 <= len(sys.argv)-1): # avoid IndexOutOfBounds
+            try:
+                methylRatio = float(sys.argv[index+1])
+                index = index+1
+                if methylRatio > 1:
+                    print('Ratio must be less than 1.0')
+                    sys.exit()
+            except ValueError:
+                print('Error: \'ratio\' must be followed by a decimal number representing minimum methylation ratio for a position to be considered methylated.')
+                sys.exit()
+
 #------------- Consider input to be a methylome sequence file we want to compare -------------#
         else:
             try:
@@ -97,33 +120,56 @@ if (len(sys.argv) > 1): # then we have parameters
 
 # -------- Confirm validity of given sequences --------
 confirmed = []
-with open('./Batch/' + batch, 'r') as seqList:
-    for el in seqList:
-        try:
-            el = el.strip('\n')
-            f = gzip.open(dirName+el, 'r')
-            next(f) # verify this is safe for later, that it is not empty.
-            confirmed.append(el)
-        except FileNotFoundError:
-            print('File ' + dirName + el + " was not found. Excluding.")
+try:
+    with open('./Batch/' + batch, 'r') as seqList:
+        for el in seqList:
+            try:
+                el = el.strip('\n').split(',')[0]
+                f = gzip.open(dirName+el, 'r')
+                next(f) # verify this is safe for later, that it is not empty.
+                confirmed.append(el)
+                f.close()
+            except FileNotFoundError:
+                print('Data file ' + el + " was not found. Excluding.")
+except NameError:
+    print('Batch file was not given.')
+    sys.exit()
 
 if len(confirmed) < 2:
     print('Need minimum 2 valid methylomes to compare segregating sites.')
     sys.exit()
 
 
-# -------- Prep the result file --------
+# -------- Prep the result file. As many names as there are options... --------
 if defaultRange == 1:
-    description = './Results/Segregating_chr_'+str(chromo)+'_range_full_from_'+str(confirmed)+'.txt'
+    if minBases == '':
+        if methylRatio == '':
+            description = './Results/Segregating_chr_'+str(chromo)+'_range_full_from_'+batch.split('.')[0]+'.csv'
+        else:
+            description = './Results/Segregating_methylation_ratio_'+str(methylRatio)+'_chr_'+str(chromo)+'_range_full_from_'+batch.split('.')[0]+'.csv'
+    elif methylRatio == '':
+        description = './Results/Segregating_min_bases_'+str(minBases)+'_chr_'+str(chromo)+'_range_full_from_'+batch.split('.')[0]+'.csv'
+    else:
+        description = './Results/Segregating_methylation_ratio_'+str(methylRatio)+'_min_bases_'+str(minBases)+'_chr_'+str(chromo)+'_range_full_from_'+batch.split('.')[0]+'.csv'
 else:
-    description = './Results/Segregating_chr_'+str(chromo)+'_range_'+str(minPos)+'-'+str(maxPos)+'_from_'+str(confirmed)+'.txt'
+    if minBases == '':
+        if methylRatio == '':
+            description = './Results/Segregating_chr_'+str(chromo)+'_range_'+str(minPos)+'-'+str(maxPos)+'_from_'+batch.split('.')[0]+'.csv'
+        else:
+            description = './Results/Segregating_methylation_ratio_'+str(methylRatio)+'chr_'+str(chromo)+'_range_'+str(minPos)+'-'+str(maxPos)+'_from_'+batch.split('.')[0]+'.csv'
+    elif methylRatio == '':
+        description = './Results/Segregating_min_bases_'+str(minBases)+'_chr_'+str(chromo)+'_range_'+str(minPos)+'-'+str(maxPos)+'_from_'+batch.split('.')[0]+'.csv'
+    else:
+        description = './Results/Segregating_methylation_ratio_'+str(methylRatio)+'_min_bases_'+str(minBases)+'_chr_'+str(chromo)+'_range_'+str(minPos)+'-'+str(maxPos)+'_from_'+batch.split('.')[0]+'.csv'
+
 try:
     result = open(description, 'w')
 except FileNotFoundError: # When dir Results does not exist
     os.mkdir('./Results')
     result = open(description, 'w')
 # HEADERS
-result.write('ecotype1,ecotype2,chromosome,start-pos,end-pos,total-seg-sites,total-perc-seg,CG-seg,CG-perc,CHG-seg,CHG-perc,CHH-seg,CHH-perc\n')
+result.write('total-seg-sites,total-perc-seg,CG-seg,CG-perc,CHG-seg,CHG-perc,CHH-seg,CHH-perc,ecotype1,ecotype2,chromosome,start-pos,end-pos,minBase,methylRatio\n')
+
 if hrr == 1:
     if defaultRange == 1:
         report = open('./Results/SegReport_chr_'+str(chromo)+'_range_full_from_'+str(confirmed)+'.txt', 'w')
@@ -157,14 +203,50 @@ if chromo == 'all':
                 while 1: # We leave this otherwise infinite loop by hitting an IndexError at the end of a file.
                     if line1[0] == line2[0]: # chromosomes are the same
                         if  line1[1] == line2[1]: # Positions are matched.
-                            check = int(line2[6]) + int(line1[6])
 
-# Note: do we want to count a match only when context is the same?
-# Here I count them as methy-matches when they have same context.
+# keep same 0,1,2 code for 'check' but new determination for what is considered methylated
+                            if methylRatio == '':
+                                # branch where no ratio is given
+                                if minBases == '':
+                                    # no arguments given, so use given methylation_call value
+                                    check = int(line2[6]) + int(line1[6])
+                                elif int(line2[5]) >= minBases and int(line1[5]) >= minBases:
+                                    # minBases given. Both must meet minBases to qualify
+                                    check = int(line2[6]) + int(line1[6])
+                                else: # considered unmethylated for not meeting minBases
+                                    check = 0
+
+                            # branch where methylRatio is given, but minBases is not
+                            elif minBases == '':
+                                # Only methylRatio given. Both must qualify to be considered
+                                if int(line1[4]) / int(line1[5]) >= methylRatio:
+                                    mc1 = 1
+                                else:
+                                    mc1 = 0
+                                if int(line2[4]) / int(line2[5]) >= methylRatio:
+                                    mc2 = 1
+                                else:
+                                    mc2 = 0
+                                check = mc1 + mc2
+
+                            # branch with methylRatio and minBases
+                            elif int(line2[5]) >= minBases and int(line1[5]) >= minBases:
+                                # since both have enough bases, we can evaluate based on methylRatio
+                                if int(line1[4]) / int(line1[5]) >= methylRatio:
+                                    mc1 = 1
+                                else:
+                                    mc1 = 0
+                                if int(line2[4]) / int(line2[5]) >= methylRatio:
+                                    mc2 = 1
+                                else:
+                                    mc2 = 0
+                                check = mc1 + mc2
+                            else: # considered unmethylated for not meeting minBases
+                                check = 0
 
                             # matching
                             if check == 2: # line1[6] == 1 and line2[6] == 1:
-                                if line1[3] == line2[3]:
+                                if line1[3] == line2[3]: # same mc_class
 
                                     match = re.search(r'CG', line1[3])
                                     if match:
@@ -225,13 +307,23 @@ if chromo == 'all':
                 print('End of comparison '+seq1+' & '+seq2)
                 print(str(round(time.time() - subStart, 2)) + 'seconds for a comparison.')
 
-            # Write results to file according to ('methylome1,methylome2,chromosome(s),start-position,end-position,total-segregating-sites,total-percent-segregating,CG-segregating,CG-percent,CHG-segregating,CHG-percent,CHH-segregating,CHH-percent\n')
-            result.write(seq1+','+seq2+str(chromo)+','+str(minPos)+','+str(maxPos)+','+str(total_s)+','+str(total_s/(total_s+total_m))+',')
-            result.write(str(CG_s)+','+str(CG_s/(CG_s+CG_m))+','+str(CHG_s)+','+str(CHG_s/(CHG_s+CHG_m))+','+str(CHH_s)+','+str(CHH_s/(CHH_s+CHH_m))+'\n')
+            # Write results to file according to HEADERS: total-seg-sites,total-perc-seg,CG-seg,CG-perc,CHG-seg,CHG-perc,CHH-seg,CHH-perc,ecotype1,ecotype2,chromosome,start-pos,end-pos,minBase,methylRatio
+            result.write(str(total_s)+','+str(total_s/(total_s+total_m))+','str(CG_s)+','+str(CG_s/(CG_s+CG_m))+',')
+            result.write(str(CHG_s)+','+str(CHG_s/(CHG_s+CHG_m))+','+str(CHH_s)+','+str(CHH_s/(CHH_s+CHH_m))+',')
+            result.write(seq1+','+seq2+','+str(chromo)+','+str(minPos)+','+str(maxPos)+','+str(minBases)+','+str(methylRatio)+'\n')
 
             # Optional textfile report
             if hrr == 1:
-                report.write('Comparing '+str(seq1)+' to '+str(seq2)+ 'where chromosome of interest is '+str(chromo)+', range is'+str(range)+':\n')
+                if minBases == '':
+                    mb = 'not applicable'
+                else:
+                    mb = str(minBases)
+                if methylRatio == '':
+                    mr = 'not applicable'
+                else:
+                    mr = str(methylRatio)
+                report.write('Comparing '+str(seq1)+' to '+str(seq2)+ 'where chromosome of interest is '+str(chromo)+', range is '+rn'.\n')
+                report.write('Custom minimum required observed bases is '+mb+', custom ratio of observed methylation is '+mr+'.\n')
                 report.write('Total Segregations: '+str(total_s)+', Total Percent Segregation: '+str(total_s/(total_s+total_m))+'\n')
                 report.write('Mismatched contexts (1 or 2 methylations at a position where mc_class differs): '+str(contextMismatch)+'\n')
                 report.write('CG Segregations: '+str(CG_s)+', Percent Segregation: '+str(CG_s/(CG_s+CG_m))+'.\n')
@@ -284,7 +376,43 @@ else: # This branch is where a single chromosome is specified.
                         if int(line1[1]) > maxPos:
                             break
 
-                        check = int(line2[6]) + int(line1[6])
+# keep same 0,1,2 code for 'check' but new determination for what is considered methylated
+                        if methylRatio == '':
+                            # branch where no ratio is given
+                            if minBases == '':
+                                # no arguments given, so use given methylation_call value
+                                check = int(line2[6]) + int(line1[6])
+                            elif int(line2[5]) >= minBases and int(line1[5]) >= minBases:
+                                # minBases given. Both must meet minBases to qualify
+                                check = int(line2[6]) + int(line1[6])
+                            else: # considered unmethylated for not meeting minBases
+                                check = 0
+
+                        # branch where methylRatio is given
+                        elif minBases == '':
+                            # Only methylRatio given. Both must qualify to be considered
+                            if int(line1[4]) / int(line1[5]) >= methylRatio:
+                                mc1 = 1
+                            else:
+                                mc1 = 0
+                            if int(line2[4]) / int(line2[5]) >= methylRatio:
+                                mc2 = 1
+                            else:
+                                mc2 = 0
+                            check = mc1 + mc2
+                        elif int(line2[5]) >= minBases and int(line1[5]) >= minBases:
+                            # since both have enough bases, we can evaluate based on methylRatio
+                            if int(line1[4]) / int(line1[5]) >= methylRatio:
+                                mc1 = 1
+                            else:
+                                mc1 = 0
+                            if int(line2[4]) / int(line2[5]) >= methylRatio:
+                                mc2 = 1
+                            else:
+                                mc2 = 0
+                            check = mc1 + mc2
+                        else: # considered unmethylated for not meeting minBases
+                            check = 0
 
                         if check == 2: # matching
                             if line1[3] == line2[3]:
@@ -345,13 +473,23 @@ else: # This branch is where a single chromosome is specified.
                 print('~End of comparison '+seq1+' & '+seq2)
                 print(str(round(time.time() - subStart, 2)) + 'seconds for a comparison.')
 
-                # Write results to file according to ('methylome1,methylome2,chromosome(s),start-position,end-position,total-segregating-sites,total-percent-segregating,CG-segregating,CG-percent,CHG-segregating,CHG-percent,CHH-segregating,CHH-percent\n')
-                result.write(seq1+','+seq2+str(chromo)+','+str(minPos)+','+str(maxPos)+','+str(total_s)+','+str(total_s/(total_s+total_m))+',')
-                result.write(str(CG_s)+','+str(CG_s/(CG_s+CG_m))+','+str(CHG_s)+','+str(CHG_s/(CHG_s+CHG_m))+','+str(CHH_s)+','+str(CHH_s/(CHH_s+CHH_m))+'\n')
+                # Write results to file according to HEADERS: total-seg-sites,total-perc-seg,CG-seg,CG-perc,CHG-seg,CHG-perc,CHH-seg,CHH-perc,ecotype1,ecotype2,chromosome,start-pos,end-pos,minBase,methylRatio
+                result.write(str(total_s)+','+str(total_s/(total_s+total_m))+','str(CG_s)+','+str(CG_s/(CG_s+CG_m))+',')
+                result.write(str(CHG_s)+','+str(CHG_s/(CHG_s+CHG_m))+','+str(CHH_s)+','+str(CHH_s/(CHH_s+CHH_m))+',')
+                result.write(seq1+','+seq2+','+str(chromo)+','+str(minPos)+','+str(maxPos)+','+str(minBases)+','+str(methylRatio)+'\n')
 
                 # Optional textfile report
                 if hrr == 1:
-                    report.write('Comparing '+str(seq1)+' to '+str(seq2)+ 'where chromosome of interest is '+str(chromo)+', range is'+str(range)+':\n')
+                    if minBases == '':
+                        mb = 'not applicable'
+                    else:
+                        mb = str(minBases)
+                    if methylRatio == '':
+                        mr = 'not applicable'
+                    else:
+                        mr = str(methylRatio)
+                    report.write('Comparing '+str(seq1)+' to '+str(seq2)+ 'where chromosome of interest is '+str(chromo)+', range is '+rn'.\n')
+                    report.write('Custom minimum required observed bases is '+mb+', custom ratio of observed methylation is '+mr+'.\n')
                     report.write('Total Segregations: '+str(total_s)+', Total Percent Segregation: '+str(total_s/(total_s+total_m))+'\n')
                     report.write('Mismatched contexts (1 or 2 methylations at a position where mc_class differs): '+str(contextMismatch)+'\n')
                     report.write('CG Segregations: '+str(CG_s)+', Percent Segregation: '+str(CG_s/(CG_s+CG_m))+'.\n')

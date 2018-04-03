@@ -1,0 +1,4 @@
+In Batch, we hold files containing a selection of methylome sequence filenames, which are held in Data.
+Each line of a Batch file has one such filename as the line's first word.
+When using createPop.py, a new Batch file is made with a second word in each line seperated by a comma ','
+That second word is the distance (in kilometers) from the central plant.

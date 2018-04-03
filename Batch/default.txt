@@ -1,2 +1,0 @@
-GSM1085220_mC_calls_Cnt_1.tsv.gz
-GSM1085260_mC_calls_Kil_0.tsv.gz

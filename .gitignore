@@ -1,3 +1,7 @@
 Data/*
 sequenceFiles-clean.txt
-Results/*
+Results/c*
+Results/S*
+Batch/P*
+Batch/s*
+TO DO LIST
