@@ -12,6 +12,8 @@ print('\n***********************************************************************
 print('segSites.py arguments:')
 print('--- chr [1-5] -------- optional, paired. Specifies a chromosome to summarize.')
 print('--- range ##-## ------ optional, paired. Specifies a range on chromosome to summarize.')
+print('--- minB ------------- optional, minimum observations for valid methylation status.')
+print('--- ratio ------------ optional, minimum ratio for methylated status.')
 print('--- Batch_file ------- required. Name of file in Batch.')
 print('--- HRR -------------- optional. Produces a Human Readable Report in Results.')
 print('Output: Result csv file, optional Result txt file.')
