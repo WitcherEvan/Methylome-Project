@@ -172,9 +172,9 @@ result.write('total-seg-sites,total-perc-seg,CG-seg,CG-perc,CHG-seg,CHG-perc,CHH
 
 if hrr == 1:
     if defaultRange == 1:
-        report = open('./Results/SegReport_chr_'+str(chromo)+'_range_full_from_'+str(confirmed)+'.txt', 'w')
+        report = open('./Results/SegReport_chr_'+str(chromo)+'_range_full_from_'+batch+'.txt', 'w')
     else:
-        report = open('./Results/SegReport_chr_'+str(chromo)+'_range_'+str(minPos)+'-'+str(maxPos)+'_from_'+str(confirmed)+'.txt', 'w')
+        report = open('./Results/SegReport_chr_'+str(chromo)+'_range_'+str(minPos)+'-'+str(maxPos)+'_from_'+batch+'.txt', 'w')
 
 # The branch for looking at whole methylomes
 if chromo == 'all':
@@ -250,18 +250,18 @@ if chromo == 'all':
 
                                     match = re.search(r'CG', line1[3])
                                     if match:
-                                        CG_m = CG_m + 1
-                                        total_m = total_m +1
+                                        CG_m += 1
+                                        total_m += 1
 
                                     match = re.search(r'C[A,T,C]G', line1[3])
                                     if match:
-                                        CHG_m = CHG_m + 1
-                                        total_m = total_m +1
+                                        CHG_m += 1
+                                        total_m += 1
 
                                     match = re.search(r'C[A,T,C][A,T,C]', line1[3])
                                     if match:
-                                        CHH_m = CHH_m +1
-                                        total_m = total_m +1
+                                        CHH_m += 1
+                                        total_m += 1
 
                                 else:
                                     contextMismatch = contextMismatch +1
@@ -308,8 +308,10 @@ if chromo == 'all':
                 print(str(round(time.time() - subStart, 2)) + 'seconds for a comparison.')
 
             # Write results to file according to HEADERS: total-seg-sites,total-perc-seg,CG-seg,CG-perc,CHG-seg,CHG-perc,CHH-seg,CHH-perc,ecotype1,ecotype2,chromosome,start-pos,end-pos,minBase,methylRatio
-            result.write(str(total_s)+','+str(total_s/(total_s+total_m))+','str(CG_s)+','+str(CG_s/(CG_s+CG_m))+',')
-            result.write(str(CHG_s)+','+str(CHG_s/(CHG_s+CHG_m))+','+str(CHH_s)+','+str(CHH_s/(CHH_s+CHH_m))+',')
+            # the requested metric for each context divides a mc_class segregation over all positions with resolved methyl status
+            # CHG_s/(CHG_s+CHG_m) is the format to give the percent of segregation exclusive to a particular mc_class
+            result.write(str(total_s)+','+str(total_s/(total_s+total_m))+','+str(CG_s)+','+str(CG_s/(total_s+total_m))+',')
+            result.write(str(CHG_s)+','+str(CHG_s/(total_s+total_m))+','+str(CHH_s)+','+str(CHH_s/(total_s+total_m))+',')
             result.write(seq1+','+seq2+','+str(chromo)+','+str(minPos)+','+str(maxPos)+','+str(minBases)+','+str(methylRatio)+'\n')
 
             # Optional textfile report
@@ -322,13 +324,13 @@ if chromo == 'all':
                     mr = 'not applicable'
                 else:
                     mr = str(methylRatio)
-                report.write('Comparing '+str(seq1)+' to '+str(seq2)+ 'where chromosome of interest is '+str(chromo)+', range is '+rn'.\n')
+                report.write('Comparing '+str(seq1)+' to '+str(seq2)+ 'where chromosome of interest is '+str(chromo)+', range is '+str(minPos)+'-'+str(maxPos)+'.\n')
                 report.write('Custom minimum required observed bases is '+mb+', custom ratio of observed methylation is '+mr+'.\n')
                 report.write('Total Segregations: '+str(total_s)+', Total Percent Segregation: '+str(total_s/(total_s+total_m))+'\n')
                 report.write('Mismatched contexts (1 or 2 methylations at a position where mc_class differs): '+str(contextMismatch)+'\n')
-                report.write('CG Segregations: '+str(CG_s)+', Percent Segregation: '+str(CG_s/(CG_s+CG_m))+'.\n')
-                report.write('CHG Segregations: '+str(CHG_s)+', Percent Segregation: '+str(CHG_s/(CHG_s+CHG_m))+'.\n')
-                report.write('CHH Segregations: '+str(CHH_s)+', Percent Segregation: '+str(CHH_s/(CHH_s+CHH_m))+'\n\n')
+                report.write('CG Segregations: '+str(CG_s)+', Percent Segregation within CG-class: '+str(CG_s/(CG_s+CG_m))+', Percent CG Segregation overall: '+str(CG_s/(total_s+total_m))+'.\n')
+                report.write('CHG Segregations: '+str(CHG_s)+', Percent Segregation within CHG-class: '+str(CHG_s/(CHG_s+CHG_m))+', Percent CHG Segregation overall: '+str(CHG_s/(total_s+total_m))+'.\n')
+                report.write('CHH Segregations: '+str(CHH_s)+', Percent Segregation within CHH-class: '+str(CHH_s/(CHH_s+CHH_m))+', Percent CHH Segregation overall: '+str(CHH_s/(total_s+total_m))+'\n\n')
 
             f1.close()
             f2.close()
@@ -420,17 +422,17 @@ else: # This branch is where a single chromosome is specified.
                                 match = re.search(r'CG', line1[3])
                                 if match:
                                     CG_m = CG_m + 1
-                                    total_m = total_m +1
+                                    total_m += 1
 
                                 match = re.search(r'C[A,T,C]G', line1[3])
                                 if match:
-                                    CHG_m = CHG_m + 1
-                                    total_m = total_m +1
+                                    CHG_m += 1
+                                    total_m += 1
 
                                 match = re.search(r'C[A,T,C][A,T,C]', line1[3])
                                 if match:
-                                    CHH_m = CHH_m +1
-                                    total_m = total_m +1
+                                    CHH_m += 1
+                                    total_m += 1
 
                             else:
                                 contextMismatch = contextMismatch +1
@@ -474,8 +476,8 @@ else: # This branch is where a single chromosome is specified.
                 print(str(round(time.time() - subStart, 2)) + 'seconds for a comparison.')
 
                 # Write results to file according to HEADERS: total-seg-sites,total-perc-seg,CG-seg,CG-perc,CHG-seg,CHG-perc,CHH-seg,CHH-perc,ecotype1,ecotype2,chromosome,start-pos,end-pos,minBase,methylRatio
-                result.write(str(total_s)+','+str(total_s/(total_s+total_m))+','str(CG_s)+','+str(CG_s/(CG_s+CG_m))+',')
-                result.write(str(CHG_s)+','+str(CHG_s/(CHG_s+CHG_m))+','+str(CHH_s)+','+str(CHH_s/(CHH_s+CHH_m))+',')
+                result.write(str(total_s)+','+str(total_s/(total_s+total_m))+','+str(CG_s)+','+str(CG_s/(total_s+total_m))+',')
+                result.write(str(CHG_s)+','+str(CHG_s/(total_s+total_m))+','+str(CHH_s)+','+str(CHH_s/(total_s+total_m))+',')
                 result.write(seq1+','+seq2+','+str(chromo)+','+str(minPos)+','+str(maxPos)+','+str(minBases)+','+str(methylRatio)+'\n')
 
                 # Optional textfile report
@@ -488,13 +490,13 @@ else: # This branch is where a single chromosome is specified.
                         mr = 'not applicable'
                     else:
                         mr = str(methylRatio)
-                    report.write('Comparing '+str(seq1)+' to '+str(seq2)+ 'where chromosome of interest is '+str(chromo)+', range is '+rn'.\n')
+                    report.write('Comparing '+str(seq1)+' to '+str(seq2)+ 'where chromosome of interest is '+str(chromo)+', range is '+str(minPos)+'-'+str(maxPos)+'.\n')
                     report.write('Custom minimum required observed bases is '+mb+', custom ratio of observed methylation is '+mr+'.\n')
                     report.write('Total Segregations: '+str(total_s)+', Total Percent Segregation: '+str(total_s/(total_s+total_m))+'\n')
                     report.write('Mismatched contexts (1 or 2 methylations at a position where mc_class differs): '+str(contextMismatch)+'\n')
-                    report.write('CG Segregations: '+str(CG_s)+', Percent Segregation: '+str(CG_s/(CG_s+CG_m))+'.\n')
-                    report.write('CHG Segregations: '+str(CHG_s)+', Percent Segregation: '+str(CHG_s/(CHG_s+CHG_m))+'.\n')
-                    report.write('CHH Segregations: '+str(CHH_s)+', Percent Segregation: '+str(CHH_s/(CHH_s+CHH_m))+'\n\n')
+                    report.write('CG Segregations: '+str(CG_s)+', Percent Segregation within CG-class: '+str(CG_s/(CG_s+CG_m))+', Percent CG Segregation overall: '+str(CG_s/(total_s+total_m))+'.\n')
+                    report.write('CHG Segregations: '+str(CHG_s)+', Percent Segregation within CHG-class: '+str(CHG_s/(CHG_s+CHG_m))+', Percent CHG Segregation overall: '+str(CHG_s/(total_s+total_m))+'.\n')
+                    report.write('CHH Segregations: '+str(CHH_s)+', Percent Segregation within CHH-class: '+str(CHH_s/(CHH_s+CHH_m))+', Percent CHH Segregation overall: '+str(CHH_s/(total_s+total_m))+'\n\n')
 
             f1.close()
             f2.close()

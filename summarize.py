@@ -136,11 +136,9 @@ else:
 
 try:
     result = open(description, 'w')
-    result.write('overall-methylation,CG_context,CHH_context,CHG_context,undetermined-status,ecotype,chromosome,start-pos,end-pos,minBase,methylRatio\n')
 except FileNotFoundError: # When dir Results does not exist
     os.mkdir('./Results')
     result = open(description, 'w')
-# HEADERS
 result.write('overall-methylation,CG_context,CHH_context,CHG_context,undetermined-status,ecotype,chromosome,start-pos,end-pos,minBase,methylRatio\n')
 
 # start reading sequences from designated batch-file
@@ -191,7 +189,7 @@ with open('./Batch/' + batch, 'r') as seqList:
                         else: # considered unknown for not meeting minBases req.
                             m_value = -1
 
-                        if m_value > 0:
+                        if m_value >= 0:
                             all_methyls += m_value
                         else:
                             unk += 1 # keep track of undetermined positioins
@@ -212,17 +210,17 @@ with open('./Batch/' + batch, 'r') as seqList:
                         # End of line-loop. Gets next line in myzip file
 
                     # on finishing all lines of a file,
-                    m_overall = str(round(all_methyls / linecount, 6))
-                    unk_overall = str(round(unk / linecount, 6))
+                    m_overall = str(round(all_methyls / linecount, 6)) #
+                    unk_overall = str(round(unk / linecount, 6)) #
                     # CG_context = str(round((CG_methyl / CG_total), 6))
                     # CHH_context = str(round((CHH_methyl / CHH_total), 6))
                     # CHG_context = str(round((CHG_methyl / CHG_total), 6))
-                    CG_context = str(round((CG_methyl / all_methyls), 6))
-                    CHH_context = str(round((CHH_methyl / all_methyls), 6))
-                    CHG_context = str(round((CHG_methyl / all_methyls), 6))
+                    CG_context = str(round((CG_methyl / linecount), 6))
+                    CHH_context = str(round((CHH_methyl / linecount), 6))
+                    CHG_context = str(round((CHG_methyl / linecount), 6))
 
                     # write results to csv file to save answers
-                    result.write(m_overall+','+CG_context+','+CHH_context+','+CHG_context+','+unk_overall+','+fname+','+str(chromo)+','+str(minPos)+','+str(maxPos)+','+'\n')
+                    result.write(m_overall+','+CG_context+','+CHH_context+','+CHG_context+','+unk_overall+','+fname+','+str(chromo)+','+str(minPos)+','+str(maxPos)+','+str(minBases)+','+str(methylRatio)+'\n')
                     # timer per file
                     print(str(round(time.time() - subStart, 2)) + 'seconds for '+ fname)
 
@@ -299,7 +297,7 @@ with open('./Batch/' + batch, 'r') as seqList:
                             CHG_context = str(round((CHG_methyl / all_methyls), 6))
 
                             # write results to csv file to save answers
-                            result.write(m_overall+','+CG_context+','+CHH_context+','+CHG_context+','+unk_overall+','+fname+','+str(chromo)+','+str(minPos)+','+str(maxPos)+','+'\n')
+                            result.write(m_overall+','+CG_context+','+CHH_context+','+CHG_context+','+unk_overall+','+fname+','+str(chromo)+','+str(minPos)+','+str(maxPos)+','+str(minBases)+','+str(methylRatio)+'\n')
                             # timer per file
                             print(str(round(time.time() - subStart, 2)) + 'seconds for '+ fname)
                             break # from line-reading from current file

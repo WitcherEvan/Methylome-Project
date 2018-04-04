@@ -73,7 +73,7 @@ with open('./Batch/'+batch, 'r') as src:
         seqFile = line.strip('\n').split(',')[0]
 
 #------------- result sequence filename -------------#
-        name = seqFile.split('.')[0]+'_SUBSEQ'+description+'.tsv.tar.gz'
+        name = seqFile.split('.')[0]+'_SUBSEQ'+description+'.tsv.gz'
 
         subSeq = gzip.open('./Data/'+name, 'w')
         with gzip.open('./Data/'+seqFile, 'r') as data:
