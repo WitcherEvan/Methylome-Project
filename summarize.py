@@ -4,6 +4,31 @@ import gzip
 import re
 import time
 
+def eval(line, minBases, methylRatio):
+    if methylRatio == '':
+        # branch where no ratio is given
+        if minBases == '':
+            # no arguments given, so use given methylation_call value
+            return int(line[6])
+        elif int(line[5]) >= minBases:
+            # minBases requirement met.
+            return int(line[6])
+        else: # considered unknown for not meeting minBases
+            return -1
+    # branch where methylRatio is given
+    elif minBases == '':
+        if int(line[4]) / int(line[5]) >= methylRatio:
+            return 1
+        else:
+            return 0
+    elif int(line[5]) >= minBases:
+        if int(line[4]) / int(line[5]) >= methylRatio:
+            return 1
+        else:
+            return 0
+    else: # considered unknown for not meeting minBases req.
+        return -1
+
 start = time.time()
 # Command line arguments:
 # None required, no ordering of the three enforced.
@@ -152,159 +177,80 @@ with open('./Batch/' + batch, 'r') as seqList:
         # Seperate branch of opertions for default behaviour. Doesnt feel great,
         # quasi-duplicating my code this way, but it helps keep both functionalities
         # within this one summarize.py script
-        if chromo == 'all':
-            try:
-                with gzip.open(dirName+fname, 'r') as myzip:
-                    next(myzip) # skip title headers
 
-                    # Every line of csv
-                    for byteForm in myzip:
-                        columns = byteForm.decode('utf-8').strip('\n').split('\t')
+        try:
+            with gzip.open(dirName+fname, 'r') as f:
+                next(f)# skip title headers
 
-                        # Target range not reached, continue
-                        if int(columns[1]) < minPos or int(columns[1]) > maxPos:
+                for byteLine in f:
+                    line = byteLine.decode('utf-8').strip('\n').split('\t')
+                    # Check all the reasons NOT to look at this base
+                    if chromo != 'all':
+                        if chromo == int(line[0]):
+                            if int(line[1]) < minPos:
+                                line = next(f).decode('utf-8').strip('\n').split('\t')
+                                continue
+                            elif int(line[1]) > maxPos:
+                                break
+                        elif chromo > int(line[0]):
+                            line = next(f).decode('utf-8').strip('\n').split('\t')
                             continue
-                        # reached, do stuff
-                        if methylRatio == '':
-                            # branch where no ratio is given
-                            if minBases == '':
-                                # no arguments given, so use given methylation_call value
-                                m_value = int(columns[6])
-                            elif int(columns[5]) >= minBases:
-                                # minBases requirement met.
-                                m_value = int(columns[6])
-                            else: # considered unknown for not meeting minBases
-                                m_value = -1
-                        # branch where methylRatio is given
-                        elif minBases == '':
-                            if int(columns[4]) / int(columns[5]) >= methylRatio:
-                                m_value = 1
-                            else:
-                                m_value = 0
-                        elif int(columns[5]) >= minBases:
-                            if int(columns[4]) / int(columns[5]) >= methylRatio:
-                                m_value = 1
-                            else:
-                                m_value = 0
-                        else: # considered unknown for not meeting minBases req.
-                            m_value = -1
 
-                        if m_value >= 0:
-                            all_methyls += m_value
-                        else:
-                            unk += 1 # keep track of undetermined positioins
-                        linecount += 1 # to calc real % methyls, % unknown, % non-methyl
+                        else: # past target chromosome
+                            break
 
-                        match = re.search(r'CG', columns[3])
-                        if match:
-                            CG_methyl += m_value
-                            #CG_total += 1
-                        match = re.search(r'C[A,T,C]G', columns[3])
-                        if match:
-                            CHG_methyl += m_value
-                            #CHG_total += 1
-                        match = re.search(r'C[A,T,C][A,T,C]', columns[3])
-                        if match:
-                            CHH_methyl += m_value
-                            #CHH_total += 1
-                        # End of line-loop. Gets next line in myzip file
+                    # in target region. Evaluate
+                    res = eval(line, minBases, methylRatio)
 
-                    # on finishing all lines of a file,
-                    m_overall = str(round(all_methyls / linecount, 6)) #
-                    unk_overall = str(round(unk / linecount, 6)) #
-                    # CG_context = str(round((CG_methyl / CG_total), 6))
-                    # CHH_context = str(round((CHH_methyl / CHH_total), 6))
-                    # CHG_context = str(round((CHG_methyl / CHG_total), 6))
-                    CG_context = str(round((CG_methyl / linecount), 6))
-                    CHH_context = str(round((CHH_methyl / linecount), 6))
-                    CHG_context = str(round((CHG_methyl / linecount), 6))
+                    if res == -1:
+                        unk += 1 # keep track of undetermined positioins
+                    linecount += 1 # to calc real % methyls, % unknown, % non-methyl
 
-                    # write results to csv file to save answers
-                    result.write(m_overall+','+CG_context+','+CHH_context+','+CHG_context+','+unk_overall+','+fname+','+str(chromo)+','+str(minPos)+','+str(maxPos)+','+str(minBases)+','+str(methylRatio)+'\n')
-                    # timer per file
-                    print(str(round(time.time() - subStart, 2)) + 'seconds for '+ fname)
+                    match = re.search(r'CG', line[3])
+                    if match:
+                        #CG_total += 1
+                        if res == 1:
+                            CG_methyl += 1
+                            all_methyls += res
 
-            except FileNotFoundError:
-                print('File ' + fname + " was not found.")
+                    match = re.search(r'C[A,T,C]G', line[3])
+                    if match:
+                        #CHG_total += 1
+                        if res == 1:
+                            CHG_methyl += 1
+                            all_methyls += res
 
-        else: # This branch is where a single chromosome is specified.
-            try:
-                with gzip.open(dirName+fname, 'r') as myzip:
-                    next(myzip) # skip title headers
+                    match = re.search(r'C[A,T,C][A,T,C]', line[3])
+                    if match:
+                        #CHH_total += 1
+                        if res == 1:
+                            CHH_methyl += 1
+                            all_methyls += res
 
-                    # Every line of csv
-                    for byteForm in myzip:
-                        columns = byteForm.decode('utf-8').strip('\n').split('\t')
+                    # End of line-loop. Gets next line in myzip file
+            print(all_methyls)
+            print(linecount)
+            print(CG_methyl)
+            print(CHH_methyl)
+            print(CHG_methyl)
 
-                        if int(columns[0]) < chromo or int(columns[1]) < minPos: # if current chr/position less that target,
-                                continue # with next line in myzip
+            # on finishing all lines of a file,
+            m_overall = str(round(all_methyls / linecount, 6)) #
+            unk_count = str(unk)
+            # CG_context = str(round((CG_methyl / CG_total), 6))
+            # CHH_context = str(round((CHH_methyl / CHH_total), 6))
+            # CHG_context = str(round((CHG_methyl / CHG_total), 6))
+            CG_context = str(round((CG_methyl / linecount), 6))
+            CHH_context = str(round((CHH_methyl / linecount), 6))
+            CHG_context = str(round((CHG_methyl / linecount), 6))
 
-                        # Here we've passed the checks for finding our target chromosome.
-                        if int(columns[0]) == chromo and int(columns[1]) <= maxPos: # Do things
-                            # reached, do stuff
-                            if methylRatio == '':
-                                # branch where no ratio is given
-                                if minBases == '':
-                                    # no arguments given, so use given methylation_call value
-                                    m_value = int(columns[6])
-                                elif int(columns[5]) >= minBases:
-                                    # minBases requirement met.
-                                    m_value = int(columns[6])
-                                else: # considered unknown for not meeting minBases
-                                    m_value = -1
-                            # branch where methylRatio is given
-                            elif minBases == '':
-                                if int(columns[4]) / int(columns[5]) >= methylRatio:
-                                    m_value = 1
-                                else:
-                                    m_value = 0
-                            elif int(columns[5]) >= minBases:
-                                if int(columns[4]) / int(columns[5]) >= methylRatio:
-                                    m_value = 1
-                                else:
-                                    m_value = 0
-                            else: # considered unknown for not meeting minBases req.
-                                m_value = -1
+            # write results to csv file to save answers
+            result.write(m_overall+','+CG_context+','+CHH_context+','+CHG_context+','+unk_count+','+fname+','+str(chromo)+','+str(minPos)+','+str(maxPos)+','+str(minBases)+','+str(methylRatio)+'\n')
+            # timer per file
+            print(str(round(time.time() - subStart, 2)) + ' seconds for '+ fname)
 
-                            if m_value > 0:
-                                all_methyls += m_value
-                            else:
-                                unk += 1
-                            linecount += 1 # to calc real % methyls, % unknown, % non-methyl
-
-                            match = re.search(r'CG', columns[3])
-                            if match:
-                                CG_methyl += m_value
-                                #CG_total += 1
-                            match = re.search(r'C[A,T,C]G', columns[3])
-                            if match:
-                                CHG_methyl += m_value
-                                #CHG_total += 1
-                            match = re.search(r'C[A,T,C][A,T,C]', columns[3])
-                            if match:
-                                CHH_methyl += m_value
-                                #CHH_total += 1
-                            # End of line-loop. Gets next line in myzip file
-
-                        else: # we have completed target chr-range on a sequence
-                            m_overall = str(round(all_methyls / linecount, 6))
-                            unk_overall = str(round(unk / linecount, 6))
-                            # CG_context = str(round((CG_methyl / CG_total), 6))
-                            # CHH_context = str(round((CHH_methyl / CHH_total), 6))
-                            # CHG_context = str(round((CHG_methyl / CHG_total), 6))
-                            CG_context = str(round((CG_methyl / all_methyls), 6))
-                            CHH_context = str(round((CHH_methyl / all_methyls), 6))
-                            CHG_context = str(round((CHG_methyl / all_methyls), 6))
-
-                            # write results to csv file to save answers
-                            result.write(m_overall+','+CG_context+','+CHH_context+','+CHG_context+','+unk_overall+','+fname+','+str(chromo)+','+str(minPos)+','+str(maxPos)+','+str(minBases)+','+str(methylRatio)+'\n')
-                            # timer per file
-                            print(str(round(time.time() - subStart, 2)) + 'seconds for '+ fname)
-                            break # from line-reading from current file
-
-            except FileNotFoundError:
-                print('File ' + fname + " was not found.")
-        # end of loop for a file
+        except FileNotFoundError:
+            print('File ' + fname + " was not found.")
 
 result.close()
 print(str(round(time.time() - start,2)) + ' seconds to completion.')
