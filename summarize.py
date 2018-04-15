@@ -228,11 +228,6 @@ with open('./Batch/' + batch, 'r') as seqList:
                             all_methyls += res
 
                     # End of line-loop. Gets next line in myzip file
-            print(all_methyls)
-            print(linecount)
-            print(CG_methyl)
-            print(CHH_methyl)
-            print(CHG_methyl)
 
             # on finishing all lines of a file,
             m_overall = str(round(all_methyls / linecount, 6)) #
