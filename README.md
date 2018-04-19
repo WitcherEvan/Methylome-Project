@@ -1,6 +1,6 @@
 # Methylome-Project
 Developping tools for the analysis of large methylome files.
-Here is my demonstrational video: https://drive.google.com/open?id=1bf78PWLX_rXG_R6SV3e61v1uQjGX99hP
+Here is my demonstrational video: https://drive.google.com/file/d/1qGmndbxM1yet7SG_w4_6Q7EOKFypqI3Z/view?usp=sharing
 
 **intersection.py**
 intersection.py does inital work of matching gps coordinates to their corresponding methylome, where such matches exist. It requires use of GPSdata.csv, gsm-title.csv, and sequenceFiles.txt. It produces masterList.csv, which contains data matched to its methylome sequence. As a secondary output, it creates excluded.txt to hold the names of unmatched methylome files.
